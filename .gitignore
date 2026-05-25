@@ -34,6 +34,7 @@ debug_*.py
 # ── IDE / OS ─────────────────────────────────────────
 .idea/
 .vscode/
+.claude/
 *.swp
 .DS_Store
 Thumbs.db
