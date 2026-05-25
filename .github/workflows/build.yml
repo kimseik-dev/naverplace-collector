@@ -19,12 +19,8 @@ jobs:
         include:
           - os: macos-latest
             artifact: NaverPlace-mac
-            build_cmd: bash build_mac.sh
-            dist_path: dist/NaverPlace
           - os: windows-latest
             artifact: NaverPlace-win
-            build_cmd: cmd /c build_windows.bat
-            dist_path: dist\NaverPlace
 
     steps:
       - name: Checkout
@@ -55,9 +51,26 @@ jobs:
           .venv\Scripts\pip install pyinstaller
           .venv\Scripts\playwright install chromium
 
-      - name: Build
+      - name: Build (Mac)
+        if: runner.os == 'macOS'
         shell: bash
-        run: ${{ matrix.build_cmd }}
+        run: bash build_mac.sh
+
+      - name: Build (Windows)
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: build_windows.bat
+
+      - name: Verify build output
+        shell: bash
+        run: |
+          if [ ! -d "dist/NaverPlace" ]; then
+            echo "❌ dist/NaverPlace 가 생성되지 않았습니다."
+            ls -la dist/ 2>/dev/null || echo "dist 폴더 자체가 없음"
+            exit 1
+          fi
+          echo "✓ dist/NaverPlace 폴더 확인됨"
+          du -sh dist/NaverPlace 2>/dev/null || du -sh dist/NaverPlace
 
       - name: Zip artifact (Mac)
         if: runner.os == 'macOS'
@@ -68,7 +81,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          Compress-Archive -Path dist\NaverPlace -DestinationPath ${{ matrix.artifact }}.zip
+          Compress-Archive -Path dist\NaverPlace -DestinationPath ${{ matrix.artifact }}.zip -CompressionLevel Optimal
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
