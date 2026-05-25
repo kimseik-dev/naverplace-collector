@@ -17,6 +17,14 @@ import shutil
 import sys
 from pathlib import Path
 
+# Windows 콘솔 인코딩 (cp1252)에서 한글 출력 시 UnicodeEncodeError 방지
+if sys.platform.startswith("win") and hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 
 def find_cache_dir() -> Path:
     """OS별 Playwright 브라우저 캐시 위치."""

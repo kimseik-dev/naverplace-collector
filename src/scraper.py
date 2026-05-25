@@ -60,6 +60,9 @@ class PlaceInfo:
     category_path: str = ""
     place_url: str = ""
     is_ad: bool = False
+    # 지도 뷰용 좌표 (Naver 는 x=경도, y=위도)
+    longitude: float = 0.0
+    latitude: float = 0.0
 
 
 async def _polite(min_s: float = 1.5, max_s: float = 3.0) -> None:
@@ -188,6 +191,17 @@ def _build_place_info(rank: int, name: str, entry: dict | None,
     if info.place_id:
         biz_cat = entry.get("businessCategory") or category_path
         info.place_url = f"https://m.place.naver.com/{biz_cat}/{info.place_id}/home"
+
+    # 좌표 (Naver: x=경도, y=위도)
+    try:
+        x = entry.get("x")
+        y = entry.get("y")
+        if x is not None:
+            info.longitude = float(x)
+        if y is not None:
+            info.latitude = float(y)
+    except (TypeError, ValueError):
+        pass
 
     return info
 

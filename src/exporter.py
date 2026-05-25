@@ -9,6 +9,7 @@ import pandas as pd
 COLUMN_ORDER = [
     "rank", "name", "category", "address", "phone",
     "visitor_review", "blog_review", "place_url", "place_id", "is_ad",
+    "latitude", "longitude",
 ]
 
 COLUMN_LABELS = {
@@ -22,12 +23,15 @@ COLUMN_LABELS = {
     "place_url": "플레이스 URL",
     "place_id": "플레이스 ID",
     "is_ad": "광고여부",
+    "latitude": "위도",
+    "longitude": "경도",
 }
 
 COLUMN_WIDTHS = {
     "순위": 6, "업체명": 28, "카테고리": 16, "주소": 40,
     "전화번호": 16, "방문자리뷰": 10, "블로그리뷰": 10,
     "플레이스 URL": 45, "플레이스 ID": 14, "광고여부": 8,
+    "위도": 12, "경도": 12,
 }
 
 

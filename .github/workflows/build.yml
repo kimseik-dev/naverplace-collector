@@ -9,6 +9,10 @@ on:
 permissions:
   contents: write           # Release 생성 권한
 
+env:
+  PYTHONIOENCODING: utf-8   # Windows 콘솔 cp1252 한글 인코딩 오류 방지
+  PYTHONUTF8: '1'
+
 jobs:
   build:
     name: Build (${{ matrix.os }})
