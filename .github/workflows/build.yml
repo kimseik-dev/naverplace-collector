@@ -1,0 +1,85 @@
+name: Build executables
+
+on:
+  workflow_dispatch:        # 수동 실행 (Actions 탭에서 Run workflow 버튼)
+  push:
+    tags:
+      - 'v*'                # v1.0.0 같은 태그 푸시 시 자동 빌드 + Release 업로드
+
+permissions:
+  contents: write           # Release 생성 권한
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            artifact: NaverPlace-mac
+            build_cmd: bash build_mac.sh
+            dist_path: dist/NaverPlace
+          - os: windows-latest
+            artifact: NaverPlace-win
+            build_cmd: cmd /c build_windows.bat
+            dist_path: dist\NaverPlace
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Create venv (Mac/Linux)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install --upgrade pip
+          .venv/bin/pip install -r requirements.txt
+          .venv/bin/pip install pyinstaller
+          .venv/bin/playwright install chromium
+
+      - name: Create venv (Windows)
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          python -m venv .venv
+          .venv\Scripts\pip install --upgrade pip
+          .venv\Scripts\pip install -r requirements.txt
+          .venv\Scripts\pip install pyinstaller
+          .venv\Scripts\playwright install chromium
+
+      - name: Build
+        shell: bash
+        run: ${{ matrix.build_cmd }}
+
+      - name: Zip artifact (Mac)
+        if: runner.os == 'macOS'
+        run: |
+          cd dist && zip -r ../${{ matrix.artifact }}.zip NaverPlace
+
+      - name: Zip artifact (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Compress-Archive -Path dist\NaverPlace -DestinationPath ${{ matrix.artifact }}.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}.zip
+          retention-days: 14
+
+      - name: Upload to Release (tag push)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.artifact }}.zip
+          generate_release_notes: true
