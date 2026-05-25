@@ -38,37 +38,51 @@ if [ ! -d "dist/NaverPlace" ]; then
     exit 1
 fi
 
-# Chromium 만 복사 (headless_shell 등은 제외, 최신 1개만 → 용량 절약)
-echo -e "${YELLOW}→${NC} Chromium 브라우저 복사 중 (최신 1개만)..."
+# Chromium 복사 (전체 chromium + headless_shell 둘 다 필요)
+# - chromium-NUMBER: headless=False 일 때 사용
+# - chromium_headless_shell-NUMBER: headless=True 일 때 사용 (우리 기본값)
+echo -e "${YELLOW}→${NC} Chromium 브라우저 복사 중 (chromium + headless_shell)..."
 mkdir -p "dist/NaverPlace/ms-playwright"
 
-# 최신 chromium-NUMBER 폴더 1개만 선택 (headless_shell 제외)
-LATEST_CHROMIUM=""
+# 가장 최신 버전 번호 찾기 (둘 다 같은 번호 가정)
 LATEST_NUM=0
-for dir in "$PW_CACHE"/chromium-[0-9]*; do
+for dir in "$PW_CACHE"/chromium_headless_shell-[0-9]*; do
     [ -d "$dir" ] || continue
     name=$(basename "$dir")
-    # chromium_headless_shell 제외 (이름이 chromium- 로 시작하므로 추가 검증)
-    case "$name" in
-        chromium_*) continue ;;
-    esac
-    num=$(echo "$name" | sed 's/chromium-//')
+    num=$(echo "$name" | sed 's/chromium_headless_shell-//')
     if [ "$num" -gt "$LATEST_NUM" ] 2>/dev/null; then
         LATEST_NUM=$num
-        LATEST_CHROMIUM=$dir
     fi
 done
 
-if [ -z "$LATEST_CHROMIUM" ]; then
-    echo -e "${RED}❌ chromium-NUMBER 폴더를 찾을 수 없습니다.${NC}"
+if [ "$LATEST_NUM" -eq 0 ]; then
+    echo -e "${RED}❌ chromium_headless_shell-NUMBER 폴더를 찾을 수 없습니다.${NC}"
+    echo "       'playwright install chromium' 을 먼저 실행해주세요."
     exit 1
 fi
 
-CHROMIUM_NAME=$(basename "$LATEST_CHROMIUM")
-echo "        선택된 chromium: $CHROMIUM_NAME"
-cp -R "$LATEST_CHROMIUM" "dist/NaverPlace/ms-playwright/$CHROMIUM_NAME"
+echo "        선택된 버전: $LATEST_NUM"
 
-# .links 메타 파일도 복사 (Playwright 가 참조)
+# chromium-NUMBER (full chrome) 복사
+if [ -d "$PW_CACHE/chromium-$LATEST_NUM" ]; then
+    echo "        → chromium-$LATEST_NUM 복사 중..."
+    cp -R "$PW_CACHE/chromium-$LATEST_NUM" "dist/NaverPlace/ms-playwright/chromium-$LATEST_NUM"
+fi
+
+# chromium_headless_shell-NUMBER (headless 모드용) 복사
+echo "        → chromium_headless_shell-$LATEST_NUM 복사 중..."
+cp -R "$PW_CACHE/chromium_headless_shell-$LATEST_NUM" \
+      "dist/NaverPlace/ms-playwright/chromium_headless_shell-$LATEST_NUM"
+
+# ffmpeg (옵션, 미디어 처리 시 필요할 수 있음)
+for ff in "$PW_CACHE"/ffmpeg-*; do
+    [ -d "$ff" ] || continue
+    name=$(basename "$ff")
+    cp -R "$ff" "dist/NaverPlace/ms-playwright/$name"
+    break
+done
+
+# .links 메타 파일
 if [ -d "$PW_CACHE/.links" ]; then
     cp -R "$PW_CACHE/.links" "dist/NaverPlace/ms-playwright/.links"
 fi

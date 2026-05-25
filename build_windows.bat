@@ -51,47 +51,58 @@ if not exist "dist\NaverPlace\" (
 )
 
 echo.
-echo [STEP] 6. Chromium 브라우저 복사
+echo [STEP] 6. Chromium 브라우저 복사 (chromium + headless_shell 둘 다)
 if not exist "dist\NaverPlace\ms-playwright" mkdir "dist\NaverPlace\ms-playwright"
 
-REM 가장 최신 chromium-NUMBER 폴더 찾기 (chromium_headless_shell 제외)
-REM "chromium-*" 글로브는 'chromium_' 로 시작하는 것은 매칭하지 않음 (literal "chromium-" 일치 필요)
+REM 가장 최신 chromium_headless_shell-NUMBER 폴더 찾기 (headless 모드에 필수)
 set "LATEST_NUM=0"
-set "LATEST_PATH="
-set "LATEST_NAME="
-for /d %%D in ("%PW_CACHE%\chromium-*") do (
+for /d %%D in ("%PW_CACHE%\chromium_headless_shell-*") do (
     setlocal ENABLEDELAYEDEXPANSION
-    set "FULL=%%D"
     set "BASE=%%~nxD"
-    set "NUM=!BASE:chromium-=!"
-    REM 숫자 검증: 비숫자 문자가 들어 있으면 건너뜀
+    set "NUM=!BASE:chromium_headless_shell-=!"
     set "NUM_CHECK="
     for /f "delims=0123456789" %%X in ("!NUM!") do set "NUM_CHECK=NOT_NUMERIC"
     if defined NUM_CHECK (
         endlocal
     ) else (
         if !NUM! GTR %LATEST_NUM% (
-            endlocal & set "LATEST_NUM=%%~nxD" & set "LATEST_PATH=%%D" & set "LATEST_NAME=%%~nxD"
+            endlocal & set "LATEST_NUM=!NUM!"
         ) else (
             endlocal
         )
     )
 )
 
-if not defined LATEST_PATH (
-    echo [ERROR] chromium-NUMBER 폴더를 찾을 수 없습니다.
+if "%LATEST_NUM%"=="0" (
+    echo [ERROR] chromium_headless_shell-NUMBER 폴더를 찾을 수 없습니다.
     echo [DEBUG] PW_CACHE 내용:
     dir "%PW_CACHE%" /b
     exit /b 1
 )
 
-echo [INFO] 선택된 chromium: %LATEST_NAME%
-echo [INFO] 경로: %LATEST_PATH%
-xcopy /E /I /Q /Y "%LATEST_PATH%" "dist\NaverPlace\ms-playwright\%LATEST_NAME%" >nul
+echo [INFO] 선택된 버전: %LATEST_NUM%
+
+REM chromium-NUMBER 복사 (있으면)
+if exist "%PW_CACHE%\chromium-%LATEST_NUM%" (
+    echo [INFO] chromium-%LATEST_NUM% 복사 중...
+    xcopy /E /I /Q /Y "%PW_CACHE%\chromium-%LATEST_NUM%" "dist\NaverPlace\ms-playwright\chromium-%LATEST_NUM%" >nul
+    if errorlevel 1 exit /b 1
+)
+
+REM chromium_headless_shell-NUMBER 복사 (필수)
+echo [INFO] chromium_headless_shell-%LATEST_NUM% 복사 중...
+xcopy /E /I /Q /Y "%PW_CACHE%\chromium_headless_shell-%LATEST_NUM%" "dist\NaverPlace\ms-playwright\chromium_headless_shell-%LATEST_NUM%" >nul
 if errorlevel 1 (
-    echo [ERROR] Chromium 복사 실패
+    echo [ERROR] chromium_headless_shell 복사 실패
     exit /b 1
 )
+
+REM ffmpeg (옵션)
+for /d %%D in ("%PW_CACHE%\ffmpeg-*") do (
+    xcopy /E /I /Q /Y "%%D" "dist\NaverPlace\ms-playwright\%%~nxD" >nul
+    goto :ffmpeg_done
+)
+:ffmpeg_done
 
 if exist "%PW_CACHE%\.links" xcopy /E /I /Q /Y "%PW_CACHE%\.links" "dist\NaverPlace\ms-playwright\.links" >nul
 
